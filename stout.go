@@ -66,7 +66,7 @@ func (s Stream) Write(chunks ...Chunk) (n int64, err error) {
 		}()
 	}
 
-	if n, err = s.w.WriteChunks(chunks...); err == nil && s.w.flush != nil {
+	if n, err = s.w.WriteChunks(chunks); err == nil && s.w.flush != nil {
 		err = s.w.flush()
 	}
 
@@ -235,7 +235,7 @@ func (w *Writer) ReadFrom(r io.Reader) (int64, error) { return w.readFrom(r) }
 
 // WriteChunks writes the given chunks to the stream. Useful when implementing a chunk
 // composed from other chunks.
-func (w *Writer) WriteChunks(chunks ...Chunk) (n int64, err error) {
+func (w *Writer) WriteChunks(chunks []Chunk) (n int64, err error) {
 	for i, fn := range chunks {
 		var m int64
 
@@ -260,6 +260,13 @@ func (w *Writer) readFromAndClose(src io.ReadCloser) (n int64, err error) {
 
 	n, err = w.readFrom(src)
 	return
+}
+
+// Seq constructs a sequential composition of the given chunks.
+func Seq(chunks ...Chunk) Chunk {
+	return func(w *Writer) (int64, error) {
+		return w.WriteChunks(chunks)
+	}
 }
 
 // ByteSlice constructs a chunk function that writes the given byte slice to a stream.
