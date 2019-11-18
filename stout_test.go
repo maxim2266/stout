@@ -77,8 +77,8 @@ func TestWriteFile(t *testing.T) {
 
 	const str = "--- ZZZ ---"
 
-	err = testFileWrite(name, str, func() (int64, error) {
-		return WriteFile(name, 0644, String(str))
+	err = testFileWrite(name, str+" Ы", func() (int64, error) {
+		return WriteFile(name, 0644, String(str), Byte(' '), Rune('Ы'))
 	})
 
 	if err != nil {

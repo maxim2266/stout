@@ -82,6 +82,7 @@ Writer implements the following interface:
 	io.ReaderFrom
 
 	WriteRune(rune) (int, error)
+	WriteChunks([]Chunk) (int64, error)
 */
 type Writer struct {
 	writeByteSlice func([]byte) (int, error)      // required, must not be nil
@@ -258,7 +259,7 @@ func (w *Writer) readFromAndClose(src io.ReadCloser) (n int64, err error) {
 		}
 	}()
 
-	n, err = w.readFrom(src)
+	n, err = w.ReadFrom(src)
 	return
 }
 
@@ -276,7 +277,7 @@ func ByteSlice(val []byte) Chunk {
 	}
 
 	return func(w *Writer) (int64, error) {
-		n, err := w.writeByteSlice(val)
+		n, err := w.Write(val)
 		return int64(n), err
 	}
 }
@@ -288,7 +289,7 @@ func String(val string) Chunk {
 	}
 
 	return func(w *Writer) (int64, error) {
-		n, err := w.writeString(val)
+		n, err := w.WriteString(val)
 		return int64(n), err
 	}
 }
@@ -301,7 +302,7 @@ func nopChunk(_ *Writer) (int64, error) {
 // Byte constructs a chunk function that writes the given byte to a stream.
 func Byte(val byte) Chunk {
 	return func(w *Writer) (n int64, err error) {
-		if err = w.writeByte(val); err == nil {
+		if err = w.WriteByte(val); err == nil {
 			n = 1
 		}
 
@@ -312,7 +313,7 @@ func Byte(val byte) Chunk {
 // Rune constructs a chunk function that writes the given rune to a stream.
 func Rune(val rune) Chunk {
 	return func(w *Writer) (int64, error) {
-		n, err := w.writeRune(val)
+		n, err := w.WriteRune(val)
 		return int64(n), err
 	}
 }
@@ -320,7 +321,7 @@ func Rune(val rune) Chunk {
 // Reader constructs a chunk function that copies data from the given io.Reader to a stream.
 func Reader(src io.Reader) Chunk {
 	return func(w *Writer) (int64, error) {
-		return w.readFrom(src)
+		return w.ReadFrom(src)
 	}
 }
 
