@@ -263,11 +263,44 @@ func (w *Writer) readFromAndClose(src io.ReadCloser) (n int64, err error) {
 	return
 }
 
-// Seq constructs a sequential composition of the given chunks.
-func Seq(chunks ...Chunk) Chunk {
+// All constructs a sequential composition of the given chunks.
+func All(chunks ...Chunk) Chunk {
 	return func(w *Writer) (int64, error) {
 		return w.WriteChunks(chunks)
 	}
+}
+
+// Repeat calls the given chunk function over and over again until it returns a non-nil error.
+// io.EOF is treated as a signal to stop the iteration, not an error.
+func Repeat(chunk Chunk) Chunk {
+	return func(w *Writer) (n int64, err error) {
+		var m int64
+
+		for m, err = chunk(w); err == nil; m, err = chunk(w) {
+			n += m
+		}
+
+		if err == io.EOF {
+			n += m
+			err = nil
+		}
+
+		return
+	}
+}
+
+// RepeatN calls the given chunk function the specified number of times.
+func RepeatN(num int, chunk Chunk) Chunk {
+	i := num
+
+	return Repeat(func(w *Writer) (int64, error) {
+		if i > 0 {
+			i--
+			return chunk(w)
+		}
+
+		return 0, io.EOF
+	})
 }
 
 // ByteSlice constructs a chunk function that writes the given byte slice to a stream.

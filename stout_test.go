@@ -128,6 +128,30 @@ func TestWriteCloser(t *testing.T) {
 	}
 }
 
+func TestRepeatN(t *testing.T) {
+	name, err := tempFileName("zzz-")
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(name)
+
+	const (
+		str = "Zz"
+		N   = 100
+	)
+
+	err = testFileWrite(name, strings.Repeat(str, N), func() (int64, error) {
+		return WriteFile(name, 0644, RepeatN(N, String(str)))
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func testFileWrite(file, content string, test func() (int64, error)) error {
 	n, err := test()
 
