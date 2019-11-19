@@ -210,16 +210,16 @@ func Example_hello() {
 	// Hello, world!!!
 }
 
-func Example_temp() {
-	fileName, _, err := WriteTempFile(String("Hello, world!"))
+func Example_file() {
+	tmp, _, err := WriteTempFile(String("Hello, world!"))
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	defer os.Remove(fileName)
+	defer os.Remove(tmp)
 
-	_, err = WriterStream(os.Stdout).Write(File(fileName))
+	_, err = WriterStream(os.Stdout).Write(File(tmp))
 
 	if err != nil {
 		log.Fatal(err)
