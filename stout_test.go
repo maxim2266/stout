@@ -38,7 +38,7 @@ import (
 )
 
 func TestBasics(t *testing.T) {
-	const str = "Hello, world!"
+	const str = "Hello, world!!!"
 
 	var s strings.Builder
 
@@ -46,7 +46,8 @@ func TestBasics(t *testing.T) {
 		String("Hello"),
 		Rune(','),
 		Byte(' '),
-		ByteSlice([]byte("world!")),
+		ByteSlice([]byte("world")),
+		RepeatN(3, Byte('!')),
 	)
 
 	if err != nil {
@@ -66,18 +67,9 @@ func TestBasics(t *testing.T) {
 }
 
 func TestWriteFile(t *testing.T) {
-	name, err := tempFileName("zzz-")
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer os.Remove(name)
-
 	const str = "--- ZZZ ---"
 
-	err = testFileWrite(name, str+" Ы", func() (int64, error) {
+	err := testAndCompare(str+" Ы", func(name string) (int64, error) {
 		return WriteFile(name, 0644, String(str), Byte(' '), Rune('Ы'))
 	})
 
@@ -87,18 +79,9 @@ func TestWriteFile(t *testing.T) {
 }
 
 func TestAtomicWriteFile(t *testing.T) {
-	name, err := tempFileName("zzz-")
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer os.Remove(name)
-
 	const str = "--- ZZZ ---"
 
-	err = testFileWrite(name, str, func() (int64, error) {
+	err := testAndCompare(str, func(name string) (int64, error) {
 		return AtomicWriteFile(name, 0644, String(str))
 	})
 
@@ -108,18 +91,9 @@ func TestAtomicWriteFile(t *testing.T) {
 }
 
 func TestWriteCloser(t *testing.T) {
-	file, err := ioutil.TempFile("", "zzz-")
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer os.Remove(file.Name())
-
 	const str = "--- ZZZ ---"
 
-	err = testFileWrite(file.Name(), str, func() (int64, error) {
+	err := testAndCompareFd(str, func(file *os.File) (int64, error) {
 		return WriteCloserStream(file).Write(String(str))
 	})
 
@@ -128,41 +102,8 @@ func TestWriteCloser(t *testing.T) {
 	}
 }
 
-func TestRepeatN(t *testing.T) {
-	name, err := tempFileName("zzz-")
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer os.Remove(name)
-
-	const (
-		str = "Zz"
-		N   = 100
-	)
-
-	err = testFileWrite(name, strings.Repeat(str, N), func() (int64, error) {
-		return WriteFile(name, 0644, RepeatN(N, String(str)))
-	})
-
-	if err != nil {
-		t.Error(err)
-	}
-}
-
 func TestAll(t *testing.T) {
-	name, err := tempFileName("zzz-")
-
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	defer os.Remove(name)
-
-	err = testFileWrite(name, "AAABBBCCC", func() (int64, error) {
+	err := testAndCompare("AAABBBCCC", func(name string) (int64, error) {
 		return WriteFile(name, 0644, All(
 			String("AAA"),
 			String("BBB"),
@@ -173,32 +114,6 @@ func TestAll(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-}
-
-func testFileWrite(file, content string, test func() (int64, error)) error {
-	n, err := test()
-
-	if err != nil {
-		return err
-	}
-
-	m := int64(len(content))
-
-	if n != m {
-		return fmt.Errorf("Unexpected number of bytes written: %d instead of %d", n, m)
-	}
-
-	res, err := ioutil.ReadFile(file)
-
-	if err != nil {
-		return err
-	}
-
-	if string(res) != content {
-		return fmt.Errorf("Unexpected result: %q instead of %q", string(res), content)
-	}
-
-	return nil
 }
 
 func TestFromFile(t *testing.T) {
@@ -244,25 +159,73 @@ func TestFromFile(t *testing.T) {
 	}
 }
 
-func writeTempFile(content string) (name string, err error) {
-	var file *os.File
+// helper functions -----------------------------------------------------------
+func testAndCompare(expected string, test func(string) (int64, error)) error {
+	name, err := mktemp("zzz-")
 
-	if file, err = ioutil.TempFile("", "zzz-"); err != nil {
-		return
+	if err != nil {
+		return err
 	}
 
+	defer os.Remove(name)
+
+	n, err := test(name)
+
+	if err != nil {
+		return err
+	}
+
+	return checkContent(name, expected, n)
+}
+
+func testAndCompareFd(expected string, test func(*os.File) (int64, error)) error {
+	fd, err := ioutil.TempFile("", "zzz-")
+
+	if err != nil {
+		return err
+	}
+
+	name := fd.Name()
+
 	defer func() {
-		if e := file.Close(); e != nil && err == nil {
-			err = e
-		}
+		fd.Close()
+		os.Remove(name)
 	}()
 
-	name = file.Name()
-	_, err = file.WriteString(content)
+	n, err := test(fd)
+
+	if err != nil {
+		return err
+	}
+
+	return checkContent(name, expected, n)
+}
+
+func checkContent(fileName, content string, n int64) error {
+	if m := int64(len(content)); n != m {
+		return fmt.Errorf("Unexpected number of bytes written: %d instead of %d", n, m)
+	}
+
+	res, err := ioutil.ReadFile(fileName)
+
+	if err != nil {
+		return err
+	}
+
+	if s := string(res); s != content {
+		return fmt.Errorf("Unexpected result: %q instead of %q", s, content)
+	}
+
+	return nil
+}
+
+func writeTempFile(content string) (name string, err error) {
+	name, _, err = WriteTempFile(String(content))
+
 	return
 }
 
-func tempFileName(prefix string) (string, error) {
+func mktemp(prefix string) (string, error) {
 	file, err := ioutil.TempFile("", prefix)
 
 	if err != nil {

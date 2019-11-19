@@ -412,7 +412,7 @@ func writeFile(pathname string, flags int, perm os.FileMode, chunks []Chunk) (n 
 // of the write operation. In case of any error the temporary is removed from the disk, and the target
 // is left unmodified.
 func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int64, err error) {
-	// create temporary file
+	// create temporary file in the same directory as the target
 	var fd *os.File
 
 	if fd, err = ioutil.TempFile(filepath.Dir(pathname), "tmp-"); err != nil {
@@ -438,6 +438,39 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 	if n, err = WriteCloserBufferedStream(fd).Write(chunks...); err == nil {
 		err = os.Rename(temp, pathname)
 	}
+
+	return
+}
+
+// WriteTempFile writes the given chunks to a temporary file and returns the full path to
+// the file and the number of bytes written, or an error. In case of any error or a panic
+// the temporary file is removed from the disk. The file name has prefix "tmp-", and it is
+// located in the default directory for temporary files (see os.TempDir).
+func WriteTempFile(chunks ...Chunk) (name string, n int64, err error) {
+	var fd *os.File
+
+	if fd, err = ioutil.TempFile("", "tmp-"); err != nil {
+		return
+	}
+
+	name = fd.Name()
+
+	// make sure the temporary file is removed on failure
+	defer func() {
+		if p := recover(); p != nil {
+			os.Remove(name)
+			panic(p)
+		}
+
+		if err != nil {
+			os.Remove(name)
+			name = ""
+			n = 0
+		}
+	}()
+
+	// do the write
+	n, err = WriteCloserBufferedStream(fd).Write(chunks...)
 
 	return
 }
