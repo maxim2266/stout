@@ -152,6 +152,29 @@ func TestRepeatN(t *testing.T) {
 	}
 }
 
+func TestAll(t *testing.T) {
+	name, err := tempFileName("zzz-")
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(name)
+
+	err = testFileWrite(name, "AAABBBCCC", func() (int64, error) {
+		return WriteFile(name, 0644, All(
+			String("AAA"),
+			String("BBB"),
+			String("CCC"),
+		))
+	})
+
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func testFileWrite(file, content string, test func() (int64, error)) error {
 	n, err := test()
 

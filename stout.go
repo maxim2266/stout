@@ -274,8 +274,8 @@ func All(chunks ...Chunk) Chunk {
 // it returns a non-nil error. The supplied chunk function is expected to return io.EOF
 // to stop the iteration without error.
 //
-// WARNING: other the chunk constructors from this
-// package MUST NOT be used to supply an argument for this function.
+// WARNING: other chunk constructors from this package MUST NOT be used to supply
+// an argument for this function.
 func Repeat(chunk Chunk) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		var m int64
