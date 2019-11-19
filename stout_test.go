@@ -160,7 +160,40 @@ func TestFromFile(t *testing.T) {
 	}
 }
 
-func ExampleHelloWorld() {
+func TestDefaultFunctions(t *testing.T) {
+	var w writer
+
+	_, err := WriterStream(&w).Write(
+		Rune('Ы'),
+		Byte('z'),
+		String("__"),
+		ByteSlice([]byte("xxx")),
+	)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	const exp = "Ыz__xxx"
+
+	if s := string(w.b); s != exp {
+		t.Errorf("Unexpected result: %q instead of %q", s, exp)
+		return
+	}
+}
+
+// dummy writer
+type writer struct {
+	b []byte
+}
+
+func (w *writer) Write(s []byte) (int, error) {
+	w.b = append(w.b, s...)
+	return len(s), nil
+}
+
+func Example_hello() {
 	_, err := WriterBufferedStream(os.Stdout).Write(
 		String("Hello"),
 		Byte(','),
@@ -177,7 +210,7 @@ func ExampleHelloWorld() {
 	// Hello, world!!!
 }
 
-func ExampleTempFile() {
+func Example_temp() {
 	fileName, _, err := WriteTempFile(String("Hello, world!"))
 
 	if err != nil {
