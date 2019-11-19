@@ -161,7 +161,7 @@ func TestFromFile(t *testing.T) {
 }
 
 func ExampleHelloWorld() {
-	_, err := WriteCloserBufferedStream(os.Stdout).Write(
+	_, err := WriterBufferedStream(os.Stdout).Write(
 		String("Hello"),
 		Byte(','),
 		Rune(' '),
@@ -175,6 +175,25 @@ func ExampleHelloWorld() {
 
 	// Output:
 	// Hello, world!!!
+}
+
+func ExampleTempFile() {
+	fileName, _, err := WriteTempFile(String("Hello, world!"))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer os.Remove(fileName)
+
+	_, err = WriterStream(os.Stdout).Write(File(fileName))
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Output:
+	// Hello, world!
 }
 
 // helper functions -----------------------------------------------------------
