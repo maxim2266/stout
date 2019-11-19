@@ -32,6 +32,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -157,6 +158,23 @@ func TestFromFile(t *testing.T) {
 		t.Errorf("Unexpected result: %q instead of %q", res, str)
 		return
 	}
+}
+
+func ExampleHelloWorld() {
+	_, err := WriteCloserBufferedStream(os.Stdout).Write(
+		String("Hello"),
+		Byte(','),
+		Rune(' '),
+		String("world"),
+		RepeatN(3, Byte('!')),
+	)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Output:
+	// Hello, world!!!
 }
 
 // helper functions -----------------------------------------------------------
