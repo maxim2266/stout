@@ -270,18 +270,19 @@ func All(chunks ...Chunk) Chunk {
 	}
 }
 
-// Repeat constructs a chunk function that calls the given chunk over and over again until
-// it returns a non-nil error. The supplied chunk function is expected to return io.EOF
-// to stop the iteration without error.
-//
-// WARNING: other chunk constructors from this package MUST NOT be used to supply
-// an argument for this function.
-func Repeat(chunk Chunk) Chunk {
+// Repeat constructs a chunk function that calls the given function over and over
+// again until it returns a non-nil error. The supplied function serves the same
+// purpose as a regular chunk function. The first parameter to each call is the
+// call's number (counting up from 0), it may help to decide when to stop the iteration.
+// The supplied function is expected to return io.EOF to stop the iteration without an error.
+func Repeat(fn func(i int, w *Writer) (int64, error)) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		var m int64
+		var i int
 
-		for m, err = chunk(w); err == nil; m, err = chunk(w) {
+		for m, err = fn(i, w); err == nil; m, err = fn(i, w) {
 			n += m
+			i++
 		}
 
 		if err == io.EOF {
@@ -294,13 +295,13 @@ func Repeat(chunk Chunk) Chunk {
 }
 
 // RepeatN constructs a chunk function that calls the given chunk the specified number of times.
-// The returned chunk function is stateful and cannot be reused.
 func RepeatN(num int, chunk Chunk) Chunk {
-	i := num
+	if num <= 0 {
+		return nopChunk
+	}
 
-	return Repeat(func(w *Writer) (int64, error) {
-		if i > 0 {
-			i--
+	return Repeat(func(i int, w *Writer) (int64, error) {
+		if i < num {
 			return chunk(w)
 		}
 
