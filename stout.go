@@ -270,8 +270,12 @@ func All(chunks ...Chunk) Chunk {
 	}
 }
 
-// Repeat calls the given chunk function over and over again until it returns a non-nil error.
-// io.EOF is treated as a signal to stop the iteration, not an error.
+// Repeat constructs a chunk function that calls the given chunk over and over again until
+// it returns a non-nil error. The supplied chunk function is expected to return io.EOF
+// to stop the iteration without error.
+//
+// WARNING: other the chunk constructors from this
+// package MUST NOT be used to supply an argument for this function.
 func Repeat(chunk Chunk) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		var m int64
@@ -289,7 +293,8 @@ func Repeat(chunk Chunk) Chunk {
 	}
 }
 
-// RepeatN calls the given chunk function the specified number of times.
+// RepeatN constructs a chunk function that calls the given chunk the specified number of times.
+// The returned chunk function is stateful and cannot be reused.
 func RepeatN(num int, chunk Chunk) Chunk {
 	i := num
 
