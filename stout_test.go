@@ -166,19 +166,24 @@ func TestAtomicWriteFilePanic(t *testing.T) {
 
 	// panic handler
 	defer func() {
-		if p := recover(); p == nil {
+		// check panic
+		p := recover()
+
+		if p == nil {
 			t.Error("No panic :(")
 			return
-		} else {
-			if s, ok := p.(string); !ok {
-				t.Error("Unexpected panic:", p)
-				return
-			} else {
-				if s != pmsg {
-					t.Errorf("Unexpected panic message: %q instead of %q", s, pmsg)
-					return
-				}
-			}
+		}
+
+		s, ok := p.(string)
+
+		if !ok {
+			t.Error("Unexpected panic:", p)
+			return
+		}
+
+		if s != pmsg {
+			t.Errorf("Unexpected panic message: %q instead of %q", s, pmsg)
+			return
 		}
 
 		// check for leftovers
