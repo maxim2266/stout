@@ -3,11 +3,11 @@ TEST_FILES := stout_test.go
 
 TEST := test-result
 
-test: ${TEST}
+test: $(TEST)
 
-${TEST}: ${FILES} ${TEST_FILES}
+$(TEST): $(FILES) $(TEST_FILES)
 	goimports -w $?
 	go test | tee $@
 
 clean:
-	rm -f ${TEST}
+	rm -f $(TEST)

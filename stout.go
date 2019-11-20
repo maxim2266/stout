@@ -45,7 +45,7 @@ import (
 
 // Chunk is a function that writes data using functions provided by the given stream writer,
 // returning the total number of bytes written, or an error. A number of constructors
-// of chunk functions are provided by this package, though typically such functions are
+// of chunk functions is provided by this package, though typically such functions are
 // written by the user.
 type Chunk = func(*Writer) (int64, error)
 
@@ -275,7 +275,7 @@ func All(chunks ...Chunk) Chunk {
 // purpose as a regular chunk function. The first parameter to each call is the
 // call's number (counting up from 0), it may help to decide when to stop the iteration.
 // The supplied function is expected to return io.EOF to stop the iteration without an error.
-func Repeat(fn func(i int, w *Writer) (int64, error)) Chunk {
+func Repeat(fn func(int, *Writer) (int64, error)) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		var m int64
 		var i int

@@ -30,10 +30,12 @@ package stout
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -88,6 +90,48 @@ func TestAtomicWriteFile(t *testing.T) {
 
 	if err != nil {
 		t.Error(err)
+	}
+}
+
+func TestAtomicWriteFileError(t *testing.T) {
+	tmp, err := mktemp("zzz-")
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(tmp)
+
+	_, err = AtomicWriteFile(tmp, 0644, Repeat(func(i int, w *Writer) (int64, error) {
+		if i < 5 {
+			n, err := w.WriteString("ZZZ")
+			return int64(n), err
+		}
+
+		return 0, errors.New("test error")
+	}))
+
+	if err == nil {
+		t.Error("Missing error")
+	}
+
+	const msg = "writing stream chunk 0: test error"
+
+	if s := err.Error(); s != msg {
+		t.Errorf("Unexpected error message: %q instead of %q", s, msg)
+		return
+	}
+
+	files, err := filepath.Glob("./zzz-*")
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	if len(files) > 0 {
+		t.Error("Found unexpected temporary files: " + join(", ", files...))
 	}
 }
 
@@ -193,6 +237,7 @@ func (w *writer) Write(s []byte) (int, error) {
 	return len(s), nil
 }
 
+// examples ------------------------------------------------------------------
 func Example_hello() {
 	_, err := WriterBufferedStream(os.Stdout).Write(
 		String("Hello"),
@@ -305,4 +350,8 @@ func mktemp(prefix string) (string, error) {
 	defer file.Close()
 
 	return file.Name(), nil
+}
+
+func join(sep string, s ...string) string {
+	return strings.Join(s, sep)
 }
