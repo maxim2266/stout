@@ -94,16 +94,11 @@ func TestAtomicWriteFile(t *testing.T) {
 }
 
 func TestAtomicWriteFileError(t *testing.T) {
-	tmp, err := mktemp("zzz-")
+	const file = "atomic-write-test"
 
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	defer os.Remove(file)
 
-	defer os.Remove(tmp)
-
-	_, err = AtomicWriteFile(tmp, 0644, Repeat(func(i int, w *Writer) (int64, error) {
+	_, err := AtomicWriteFile(file, 0644, Repeat(func(i int, w *Writer) (int64, error) {
 		if i < 5 {
 			n, err := w.WriteString("ZZZ")
 			return int64(n), err
@@ -114,6 +109,7 @@ func TestAtomicWriteFileError(t *testing.T) {
 
 	if err == nil {
 		t.Error("Missing error")
+		return
 	}
 
 	const msg = "writing stream chunk 0: test error"
@@ -123,7 +119,7 @@ func TestAtomicWriteFileError(t *testing.T) {
 		return
 	}
 
-	files, err := filepath.Glob("./zzz-*")
+	files, err := filepath.Glob("./tmp-*")
 
 	if err != nil {
 		t.Error(err)
@@ -131,7 +127,8 @@ func TestAtomicWriteFileError(t *testing.T) {
 	}
 
 	if len(files) > 0 {
-		t.Error("Found unexpected temporary files: " + join(", ", files...))
+		t.Error("Found unexpected temporary files:", join(", ", files...))
+		return
 	}
 }
 
@@ -256,6 +253,7 @@ func Example_hello() {
 }
 
 func Example_file() {
+	// write temporary file
 	tmp, _, err := WriteTempFile(String("Hello, world!"))
 
 	if err != nil {
@@ -264,6 +262,7 @@ func Example_file() {
 
 	defer os.Remove(tmp)
 
+	// 'cat' the temporary file
 	_, err = WriterStream(os.Stdout).Write(File(tmp))
 
 	if err != nil {
