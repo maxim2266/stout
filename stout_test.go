@@ -94,10 +94,11 @@ func TestAtomicWriteFile(t *testing.T) {
 }
 
 func TestAtomicWriteFileError(t *testing.T) {
-	const file = "atomic-write-test"
+	const file = "test-atomic-write-error"
 
 	defer os.Remove(file)
 
+	// write the file
 	_, err := AtomicWriteFile(file, 0644, Repeat(func(i int, w *Writer) (int64, error) {
 		if i < 5 {
 			n, err := w.WriteString("ZZZ")
@@ -107,11 +108,13 @@ func TestAtomicWriteFileError(t *testing.T) {
 		return 0, errors.New("test error")
 	}))
 
+	// check if we've got an error
 	if err == nil {
 		t.Error("Missing error")
 		return
 	}
 
+	// check error message
 	const msg = "writing stream chunk 0: test error"
 
 	if s := err.Error(); s != msg {
@@ -119,6 +122,7 @@ func TestAtomicWriteFileError(t *testing.T) {
 		return
 	}
 
+	// check for leftovers
 	files, err := filepath.Glob("./tmp-*")
 
 	if err != nil {
@@ -128,6 +132,95 @@ func TestAtomicWriteFileError(t *testing.T) {
 
 	if len(files) > 0 {
 		t.Error("Found unexpected temporary files:", join(", ", files...))
+		return
+	}
+
+	// check if the target still exists (it should not)
+	if _, err = os.Stat(file); !os.IsNotExist(err) {
+		if err == nil {
+			t.Errorf("File %q still exists", file)
+			return
+		}
+
+		t.Errorf("Unexpected error while stat'ing file %q: %s", file, err)
+		return
+	}
+}
+
+func TestAtomicWriteFilePanic(t *testing.T) {
+	const (
+		file = "test-atomic-write-panic"
+		cont = "ZZZ"
+	)
+
+	_, err := WriteFile(file, 0644, String(cont))
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(file)
+
+	const pmsg = "this is panic"
+
+	// panic handler
+	defer func() {
+		if p := recover(); p == nil {
+			t.Error("No panic :(")
+			return
+		} else {
+			if s, ok := p.(string); !ok {
+				t.Error("Unexpected panic:", p)
+				return
+			} else {
+				if s != pmsg {
+					t.Errorf("Unexpected panic message: %q instead of %q", s, pmsg)
+					return
+				}
+			}
+		}
+
+		// check for leftovers
+		files, err := filepath.Glob("./tmp-*")
+
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if len(files) > 0 {
+			t.Error("Found unexpected temporary files:", join(", ", files...))
+			return
+		}
+
+		// check the target content
+		content, err := ioutil.ReadFile(file)
+
+		if err != nil {
+			t.Error(err)
+			return
+		}
+
+		if s := string(content); s != cont {
+			t.Errorf("Unexpected file content: %q instead of %q", s, cont)
+			return
+		}
+	}()
+
+	// write the file
+	_, err = AtomicWriteFile(file, 0644, Repeat(func(i int, w *Writer) (int64, error) {
+		if i < 5 {
+			n, err := w.WriteString("AAA")
+			return int64(n), err
+		}
+
+		panic(pmsg)
+	}))
+
+	// check if we've got an error
+	if err != nil {
+		t.Error("Unexpected error:", err)
 		return
 	}
 }
