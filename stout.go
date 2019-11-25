@@ -433,10 +433,8 @@ type limitedWriter struct {
 }
 
 func (w *limitedWriter) Write(s []byte) (int, error) {
-	if len(s) > 0 {
-		if n := w.limit - len(w.b); n > 0 {
-			w.b = append(w.b, s[:min(n, len(s))]...)
-		}
+	if n := min(w.limit-len(w.b), len(s)); n > 0 {
+		w.b = append(w.b, s[:n]...)
 	}
 
 	return len(s), nil
