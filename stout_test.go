@@ -356,7 +356,7 @@ func TestCommadError(t *testing.T) {
 }
 
 // examples ------------------------------------------------------------------
-func Example_hello_world() {
+func ExampleExamples_hello() {
 	_, err := WriterBufferedStream(os.Stdout).Write(
 		String("Hello"),
 		Byte(','),
@@ -373,7 +373,7 @@ func Example_hello_world() {
 	// Hello, world!!!
 }
 
-func Example_temporary_file() {
+func ExampleExamples_file() {
 	// write temporary file
 	tmp, _, err := WriteTempFile(String("Hello, world!"))
 
