@@ -36,6 +36,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -322,18 +323,40 @@ func TestDefaultFunctions(t *testing.T) {
 	}
 }
 
-// dummy writer
-type writer struct {
-	b []byte
+func TestCommand(t *testing.T) {
+	const cont = "ZZZ"
+
+	var b bytes.Buffer
+
+	if _, err := ByteBufferStream(&b).Write(Command("echo", cont)); err != nil {
+		t.Error(err)
+		return
+	}
+
+	if s := string(bytes.TrimSpace(b.Bytes())); s != cont {
+		t.Errorf("Unexpected result: %q instead of %q", s, cont)
+		return
+	}
 }
 
-func (w *writer) Write(s []byte) (int, error) {
-	w.b = append(w.b, s...)
-	return len(s), nil
+func TestCommadError(t *testing.T) {
+	cmd := choose(runtime.GOOS == "windows", "type", "cat")
+
+	var b bytes.Buffer
+
+	_, err := ByteBufferStream(&b).Write(Command(cmd, "this-file-does-not-exist"))
+
+	if err == nil {
+		t.Error("No error returned")
+		return
+	}
+
+	// "writing stream chunk 0: cat: this-file-does-not-exist: No such file or directory"
+	t.Log(err)
 }
 
 // examples ------------------------------------------------------------------
-func Example_hello() {
+func Example_hello_world() {
 	_, err := WriterBufferedStream(os.Stdout).Write(
 		String("Hello"),
 		Byte(','),
@@ -350,7 +373,7 @@ func Example_hello() {
 	// Hello, world!!!
 }
 
-func Example_file() {
+func Example_temporary_file() {
 	// write temporary file
 	tmp, _, err := WriteTempFile(String("Hello, world!"))
 
@@ -451,4 +474,22 @@ func mktemp(prefix string) (string, error) {
 
 func join(sep string, s ...string) string {
 	return strings.Join(s, sep)
+}
+
+func choose(cond bool, alt1, alt2 string) string {
+	if cond {
+		return alt1
+	}
+
+	return alt2
+}
+
+// dummy writer
+type writer struct {
+	b []byte
+}
+
+func (w *writer) Write(s []byte) (int, error) {
+	w.b = append(w.b, s...)
+	return len(s), nil
 }

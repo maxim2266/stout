@@ -34,10 +34,12 @@ package stout
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -383,6 +385,73 @@ func File(pathname string) Chunk {
 
 		return
 	}
+}
+
+// Command constructs a chunk function that invokes the given command and copies its STDOUT
+// to a stream.
+func Command(name string, args ...string) Chunk {
+	cmd := exec.Command(name, args...)
+
+	return func(w *Writer) (n int64, err error) {
+		// command's stderr
+		stderr := limitedWriter{limit: 2048}
+
+		cmd.Stderr = &stderr
+
+		// command's stdout
+		var stdout io.ReadCloser
+
+		if stdout, err = cmd.StdoutPipe(); err != nil {
+			return
+		}
+
+		// invoke
+		if err = cmd.Start(); err != nil {
+			return
+		}
+
+		if n, err = w.ReadFrom(stdout); err != nil {
+			return
+		}
+
+		// wait for completion
+		if err = cmd.Wait(); err != nil {
+			if msg := stderr.String(); len(msg) > 0 {
+				err = errors.New(msg)
+			} else {
+				err = fmt.Errorf("command %q: %w", name, err)
+			}
+		}
+
+		return
+	}
+}
+
+type limitedWriter struct {
+	b     []byte
+	limit int
+}
+
+func (w *limitedWriter) Write(s []byte) (int, error) {
+	if len(s) > 0 {
+		if n := w.limit - len(w.b); n > 0 {
+			w.b = append(w.b, s[:min(n, len(s))]...)
+		}
+	}
+
+	return len(s), nil
+}
+
+func (w *limitedWriter) String() string {
+	return string(bytes.TrimSpace(w.b))
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+
+	return b
 }
 
 // WriteFile is a convenience function for writing to the given disk file. Existing file gets overwritten.
