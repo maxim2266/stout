@@ -388,7 +388,8 @@ func File(pathname string) Chunk {
 }
 
 // Command constructs a chunk function that invokes the given command and copies its STDOUT
-// to a stream.
+// to a stream. The initial 2048 bytes of the command's STDERR output (if any) are recorded
+// and returned as an error message if the command fails with non-zero code.
 func Command(name string, args ...string) Chunk {
 	cmd := exec.Command(name, args...)
 

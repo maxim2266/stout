@@ -231,6 +231,36 @@ func TestAtomicWriteFilePanic(t *testing.T) {
 	}
 }
 
+func TestAppendToFile(t *testing.T) {
+	tmp, _, err := WriteTempFile(String("ZZZ"))
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(tmp)
+
+	if _, err = AppendToFile(tmp, 0644, String("aaa")); err != nil {
+		t.Error(err)
+		return
+	}
+
+	cont, err := ioutil.ReadFile(tmp)
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	const exp = "ZZZaaa"
+
+	if s := string(cont); s != exp {
+		t.Errorf("Unexpected content: %q instead of %q", s, exp)
+		return
+	}
+}
+
 func TestWriteCloser(t *testing.T) {
 	const str = "--- ZZZ ---"
 
