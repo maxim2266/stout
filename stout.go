@@ -412,6 +412,11 @@ func Command(name string, args ...string) Chunk {
 		}
 
 		if n, err = w.ReadFrom(stdout); err != nil {
+			// this error may come from the target writer, so in order to make the command fail
+			// here we can just close the STDOUT pipe (is that correct?)
+			stdout.Close()
+			cmd.Wait()
+
 			return
 		}
 

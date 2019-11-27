@@ -385,6 +385,39 @@ func TestCommadError(t *testing.T) {
 	t.Log(err)
 }
 
+func TestCommadStreamError(t *testing.T) {
+	tmp, _, err := WriteTempFile(RepeatN(1_000_000, String("ZZZ\n")))
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(tmp)
+
+	cmd := choose(runtime.GOOS == "windows", "type", "cat")
+
+	var b deadWriter
+
+	if _, err = WriterStream(&b).Write(Command(cmd, tmp)); err == nil {
+		t.Error("missing error")
+		return
+	}
+
+	const msg = "writing stream chunk 0: dead writer error"
+
+	if s := err.Error(); s != msg {
+		t.Errorf("Unexpected error message: %q instead of %q", s, msg)
+		return
+	}
+}
+
+type deadWriter struct{}
+
+func (_ deadWriter) Write(_ []byte) (int, error) {
+	return 0, errors.New("dead writer error")
+}
+
 // examples ------------------------------------------------------------------
 func Example_hello() {
 	_, err := WriterBufferedStream(os.Stdout).Write(
