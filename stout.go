@@ -34,6 +34,7 @@ package stout
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -391,8 +392,17 @@ func File(pathname string) Chunk {
 // to a stream. The initial 2048 bytes of the command's STDERR output (if any) are recorded
 // and returned as an error message if the command fails with non-zero code.
 func Command(name string, args ...string) Chunk {
-	cmd := exec.Command(name, args...)
+	return cmdChunk(exec.Command(name, args...))
+}
 
+// CommandContext constructs a chunk function that invokes the given command and copies its STDOUT
+// to a stream. The initial 2048 bytes of the command's STDERR output (if any) are recorded
+// and returned as an error message if the command fails with non-zero code.
+func CommandContext(ctx context.Context, name string, args ...string) Chunk {
+	return cmdChunk(exec.CommandContext(ctx, name, args...))
+}
+
+func cmdChunk(cmd *exec.Cmd) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		// command's stderr
 		stderr := limitedWriter{limit: 2048}
@@ -425,7 +435,7 @@ func Command(name string, args ...string) Chunk {
 			if msg := stderr.String(); len(msg) > 0 {
 				err = errors.New(msg)
 			} else {
-				err = fmt.Errorf("command %q: %w", name, err)
+				err = fmt.Errorf("command %q: %w", cmd.Args[0], err)
 			}
 		}
 

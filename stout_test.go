@@ -414,7 +414,7 @@ func TestCommadStreamError(t *testing.T) {
 
 type deadWriter struct{}
 
-func (_ deadWriter) Write(_ []byte) (int, error) {
+func (_ *deadWriter) Write(_ []byte) (int, error) {
 	return 0, errors.New("dead writer error")
 }
 
