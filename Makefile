@@ -7,6 +7,7 @@ test: $(TEST)
 
 $(TEST): $(FILES) $(TEST_FILES)
 	goimports -w $?
+	golint $?
 	go test | tee $@
 
 clean:
