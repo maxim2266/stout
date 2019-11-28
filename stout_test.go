@@ -386,7 +386,7 @@ func TestCommadError(t *testing.T) {
 }
 
 func TestCommadStreamError(t *testing.T) {
-	tmp, _, err := WriteTempFile(RepeatN(1_000_000, String("ZZZ\n")))
+	tmp, _, err := WriteTempFile(RepeatN(1000000, String("ZZZ\n")))
 
 	if err != nil {
 		t.Error(err)
