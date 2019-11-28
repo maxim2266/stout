@@ -46,7 +46,7 @@ import (
 	"unicode/utf8"
 )
 
-// Chunk is a function that writes data using functions provided by the given stream writer,
+// Chunk is a function that writes data using the given stream writer,
 // returning the total number of bytes written, or an error. A number of constructors
 // of chunk functions is provided by this package, though typically such functions are
 // written by the user.
@@ -158,7 +158,7 @@ func WriteCloserStream(w io.WriteCloser) (s Stream) {
 	return
 }
 
-// WriterBufferedStream constructs a stream from the given io.Writer object
+// WriterBufferedStream constructs a stream from the given io.Writer object,
 // with bufio.Writer buffer on top of it.
 func WriterBufferedStream(w io.Writer) Stream {
 	b := bufio.NewWriter(w)
@@ -175,7 +175,7 @@ func WriterBufferedStream(w io.Writer) Stream {
 	}
 }
 
-// WriteCloserBufferedStream constructs a stream from the given io.WriteCloser object
+// WriteCloserBufferedStream constructs a stream from the given io.WriteCloser object,
 // with bufio.Writer buffer on top of it. The writer object will be closed upon
 // exit from the stream Write() function.
 func WriteCloserBufferedStream(w io.WriteCloser) (s Stream) {
@@ -254,7 +254,7 @@ func (w *Writer) WriteChunks(chunks []Chunk) (n int64, err error) {
 	return
 }
 
-// Copies the data from the given source, and then closes the input stream.
+// Copy the data from the given source, and then close the input stream.
 func (w *Writer) readFromAndClose(src io.ReadCloser) (n int64, err error) {
 	defer func() {
 		if e := src.Close(); e != nil && err == nil {
@@ -375,7 +375,7 @@ func ReadCloser(src io.ReadCloser) Chunk {
 	}
 }
 
-// File constructs a chunk function that copies data from the given file to a stream.
+// File constructs a chunk function that copies data from the given disk file to a stream.
 func File(pathname string) Chunk {
 	return func(w *Writer) (n int64, err error) {
 		var file *os.File
@@ -390,37 +390,37 @@ func File(pathname string) Chunk {
 
 // Command constructs a chunk function that invokes the given command and copies its STDOUT
 // to a stream. The initial 2048 bytes of the command's STDERR output (if any) are recorded
-// and returned as an error message if the command fails with non-zero code.
+// and returned as an error message if the command fails with a non-zero exit code.
 func Command(name string, args ...string) Chunk {
 	return cmdChunk(exec.Command(name, args...))
 }
 
-// CommandContext constructs a chunk function that invokes the given command and copies its STDOUT
-// to a stream. The initial 2048 bytes of the command's STDERR output (if any) are recorded
-// and returned as an error message if the command fails with non-zero code.
+// CommandContext is like Command, but also takes a context which when becomes done terminates
+// the process.
 func CommandContext(ctx context.Context, name string, args ...string) Chunk {
 	return cmdChunk(exec.CommandContext(ctx, name, args...))
 }
 
 func cmdChunk(cmd *exec.Cmd) Chunk {
 	return func(w *Writer) (n int64, err error) {
-		// command's stderr
+		// set stderr
 		stderr := limitedWriter{limit: 2048}
 
 		cmd.Stderr = &stderr
 
-		// command's stdout
+		// get stdout pipe
 		var stdout io.ReadCloser
 
 		if stdout, err = cmd.StdoutPipe(); err != nil {
 			return
 		}
 
-		// invoke
+		// start the command
 		if err = cmd.Start(); err != nil {
 			return
 		}
 
+		// read output
 		if n, err = w.ReadFrom(stdout); err != nil {
 			// this error may come from the target writer, so in order to make the command fail
 			// here we can just close the STDOUT pipe (is that correct?)
@@ -457,7 +457,15 @@ func (w *limitedWriter) Write(s []byte) (int, error) {
 }
 
 func (w *limitedWriter) String() string {
-	return string(bytes.TrimSpace(w.b))
+	// truncation may result in broken UTF-8 encoding at the end of the message
+	s := w.b
+
+	for r, n := utf8.DecodeLastRune(s); r == utf8.RuneError && n > 0; r, n = utf8.DecodeLastRune(s) {
+		s = s[:len(s)-n]
+	}
+
+	// trim space and return as a string
+	return string(bytes.TrimSpace(s))
 }
 
 func min(a, b int) int {
