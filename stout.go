@@ -273,6 +273,30 @@ func All(chunks ...Chunk) Chunk {
 	}
 }
 
+// Join constructs a chunk function that writes the given chunks with the specified
+// separator between them.
+func Join(sep string, chunks ...Chunk) Chunk {
+	switch len(chunks) {
+	case 0:
+		return nopChunk
+	case 1:
+		return chunks[0]
+	}
+
+	if len(sep) == 0 {
+		return All(chunks...)
+	}
+
+	sc := String(sep)
+	list := append(make([]Chunk, 0, 2*len(chunks)-1), chunks[0])
+
+	for _, c := range chunks[1:] {
+		list = append(append(list, sc), c)
+	}
+
+	return All(list...)
+}
+
 // Repeat constructs a chunk function that calls the given function over and over
 // again until it returns a non-nil error. The supplied function serves the same
 // purpose as a regular chunk function. The first parameter to each call is the

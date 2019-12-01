@@ -287,6 +287,27 @@ func TestAll(t *testing.T) {
 	}
 }
 
+func TestJoin(t *testing.T) {
+	var b strings.Builder
+
+	_, err := StringBuilderStream(&b).Write(Join(", ",
+		String("AAA"),
+		String("BBB"),
+		String("CCC")))
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	const exp = "AAA, BBB, CCC"
+
+	if s := b.String(); s != exp {
+		t.Errorf("Unexpected result: %q instead of %q", s, exp)
+		return
+	}
+}
+
 func TestFromFile(t *testing.T) {
 	name, err := writeTempFile("ZZZ")
 
