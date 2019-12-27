@@ -6,9 +6,35 @@
 
 Package `stout` (STream OUTput): writing byte streams in a type-safe and extensible way.
 
-### Example
+### Examples
 
-#### Simplified implementation of the `cat` command:
+##### "Hello, user" application:
+```Go
+func main() {
+	_, err := stout.WriterBufferedStream(os.Stdout).Write(
+		stout.String("Hello, "),
+		user(),
+		stout.String("!\n"),
+	)
+
+	if err != nil {
+		println("ERROR:", err.Error())
+		os.Exit(1)
+	}
+}
+
+func user() stout.Chunk {
+	name := os.Getenv("USER")
+
+	if len(name) == 0 {
+		name = "<user>"
+	}
+
+	return stout.String(name)
+}
+```
+
+##### Simplified implementation of `cat` command:
 ```Go
 func main() {
 	files := make([]stout.Chunk, 0, len(os.Args)-1)
