@@ -55,12 +55,15 @@ func main() {
 A complete application that generates a simple HTML page from `ps` command output:
 ```go
 func main() {
+	// run "ps" command
 	lines, err := ps()
 
 	if err != nil {
 		die(err.Error())
 	}
 
+	// compose HTML
+	// note: in a real-life application we would be writing to a socket instead of stdout
 	_, err = stout.WriterBufferedStream(os.Stdout).Write(
 		stout.String(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>`),
 		stout.String("<table><tr><th>pid</th><th>cpu</th><th>mem</th><th>cmd</th>"),
@@ -74,21 +77,25 @@ func main() {
 }
 
 func rowsFrom(lines [][]byte) func(int, *stout.Writer) (int64, error) {
+	// this is essentially const
 	rowStart := stout.String("<tr><td>")
 	rowSep := stout.String("</td><td>")
 	rowEnd := stout.String("</td></tr>")
 
 	return func(i int, w *stout.Writer) (int64, error) {
+		// iteration stop
 		if i >= len(lines) {
 			return 0, io.EOF
 		}
 
+		// get the i-th record
 		fields := bytes.Fields(lines[i])
 
 		if len(fields) < 4 {
 			return 0, io.EOF
 		}
 
+		// compose and write one row
 		return w.WriteChunks([]stout.Chunk{
 			rowStart,
 			stout.ByteSlice(fields[0]), // pid
@@ -106,11 +113,13 @@ func rowsFrom(lines [][]byte) func(int, *stout.Writer) (int64, error) {
 func ps() (lines [][]byte, err error) {
 	var buff bytes.Buffer
 
+	// get the output of the command into the buffer
 	_, err = stout.ByteBufferStream(&buff).Write(
 		stout.Command("ps", "--no-headers", "-Ao", "pid,%cpu,%mem,cmd"),
 	)
 
 	if err == nil {
+		// split on newlines
 		lines = bytes.Split(buff.Bytes(), []byte{'\n'})
 	}
 
