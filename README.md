@@ -65,10 +65,9 @@ func main() {
 	// compose HTML
 	// note: in a real-life application we would be writing to a socket instead of stdout
 	_, err = stout.WriterBufferedStream(os.Stdout).Write(
-		stout.String(`<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>`),
-		stout.String("<table><tr><th>pid</th><th>cpu</th><th>mem</th><th>cmd</th>"),
+		header,
 		stout.Repeat(rowsFrom(lines)),
-		stout.String("</table></body></html>"),
+		footer,
 	)
 
 	if err != nil {
@@ -77,11 +76,6 @@ func main() {
 }
 
 func rowsFrom(lines [][]byte) func(int, *stout.Writer) (int64, error) {
-	// this is essentially const
-	rowStart := stout.String("<tr><td>")
-	rowSep := stout.String("</td><td>")
-	rowEnd := stout.String("</td></tr>")
-
 	return func(i int, w *stout.Writer) (int64, error) {
 		// iteration stop
 		if i >= len(lines) {
@@ -130,4 +124,17 @@ func die(msg string) {
 	println("error:", msg)
 	os.Exit(1)
 }
+
+var (
+	header   = stout.String(hdr)
+	footer   = stout.String("</table></body></html>")
+	rowStart = stout.String("<tr><td>")
+	rowSep   = stout.String("</td><td>")
+	rowEnd   = stout.String("</td></tr>")
+)
+
+const hdr = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body><table>
+<tr><th>pid</th><th>cpu</th><th>mem</th><th>cmd</th>`
 ```
