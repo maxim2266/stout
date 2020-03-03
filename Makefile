@@ -10,5 +10,6 @@ $(TEST): $(FILES) $(TEST_FILES)
 	golint $?
 	go test | tee $@
 
+.PHONY: clean
 clean:
 	rm -f $(TEST)
