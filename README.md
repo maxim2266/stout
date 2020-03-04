@@ -15,6 +15,10 @@ This project is an attempt to improve the situation. The main goals of the proje
 * Develop an API that can be easily extended for any custom type or operation;
 * Provide some generally useful functions for real-life applications.
 
+The core ideas behind the implementation of the package are described in
+[this ](https://clogg-software.blogspot.com/2020/03/higher-order-functions-and-function.html?view=classic)
+blog post.
+
 ### Examples
 
 ##### "Hello, user" application:
@@ -65,9 +69,9 @@ func main() {
 	// compose HTML
 	// note: in a real-life application we would be writing to a socket instead of stdout
 	_, err = stout.WriterBufferedStream(os.Stdout).Write(
-		header,
+		stout.String(hdr),
 		stout.Repeat(rowsFrom(lines)),
-		footer,
+		stout.String("</table></body></html>"),
 	)
 
 	if err != nil {
@@ -91,15 +95,14 @@ func rowsFrom(lines [][]byte) func(int, *stout.Writer) (int64, error) {
 
 		// compose and write one row
 		return w.WriteChunks([]stout.Chunk{
-			rowStart,
-			stout.ByteSlice(fields[0]), // pid
-			rowSep,
-			stout.ByteSlice(fields[1]), // %cpu
-			rowSep,
-			stout.ByteSlice(fields[2]), // %mem
-			rowSep,
-			stout.String(html.EscapeString(string(fields[3]))), // cmd
-			rowEnd,
+			stout.String("<tr><td>"),
+			stout.Join("</td><td>",
+				stout.ByteSlice(fields[0]),                         // pid
+				stout.ByteSlice(fields[1]),                         // %cpu
+				stout.ByteSlice(fields[2]),                         // %mem
+				stout.String(html.EscapeString(string(fields[3]))), // cmd
+			),
+			stout.String("</td></tr>"),
 		})
 	}
 }
@@ -113,7 +116,6 @@ func ps() (lines [][]byte, err error) {
 	)
 
 	if err == nil {
-		// split on newlines
 		lines = bytes.Split(buff.Bytes(), []byte{'\n'})
 	}
 
@@ -124,14 +126,6 @@ func die(msg string) {
 	println("error:", msg)
 	os.Exit(1)
 }
-
-var (
-	header   = stout.String(hdr)
-	footer   = stout.String("</table></body></html>")
-	rowStart = stout.String("<tr><td>")
-	rowSep   = stout.String("</td><td>")
-	rowEnd   = stout.String("</td></tr>")
-)
 
 const hdr = `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
