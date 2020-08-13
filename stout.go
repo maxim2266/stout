@@ -534,11 +534,6 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 		return
 	}
 
-	// set file permission
-	if err = fd.Chmod(perm | 0600); err != nil {
-		return
-	}
-
 	temp := fd.Name()
 
 	// make sure the temporary file is removed on failure
@@ -554,11 +549,17 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 		}
 	}()
 
-	// do the write
-	if n, err = WriteCloserBufferedStream(fd).Write(chunks...); err == nil {
-		err = os.Rename(temp, pathname)
+	// set file permission
+	if err = fd.Chmod(perm | 0600); err != nil {
+		return
 	}
 
+	// do the write
+	if n, err = WriteCloserBufferedStream(fd).Write(chunks...); err != nil {
+		return
+	}
+
+	err = os.Rename(temp, pathname)
 	return
 }
 
@@ -591,6 +592,5 @@ func WriteTempFile(chunks ...Chunk) (name string, n int64, err error) {
 
 	// do the write
 	n, err = WriteCloserBufferedStream(fd).Write(chunks...)
-
 	return
 }
