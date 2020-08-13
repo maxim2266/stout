@@ -534,6 +534,11 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 		return
 	}
 
+	// set file permission
+	if err = fd.Chmod(perm | 0600); err != nil {
+		return
+	}
+
 	temp := fd.Name()
 
 	// make sure the temporary file is removed on failure

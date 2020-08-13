@@ -86,7 +86,7 @@ func TestAtomicWriteFile(t *testing.T) {
 	const str = "--- ZZZ ---"
 
 	err := testAndCompare(str, func(name string) (int64, error) {
-		return AtomicWriteFile(name, 0644, String(str))
+		return AtomicWriteFile(name, 0600, String(str))
 	})
 
 	if err != nil {
@@ -100,7 +100,7 @@ func TestAtomicWriteFileError(t *testing.T) {
 	defer os.Remove(file)
 
 	// write the file
-	_, err := AtomicWriteFile(file, 0644, Repeat(func(i int, w *Writer) (int64, error) {
+	_, err := AtomicWriteFile(file, 0600, Repeat(func(i int, w *Writer) (int64, error) {
 		if i < 5 {
 			n, err := w.WriteString("ZZZ")
 			return int64(n), err
