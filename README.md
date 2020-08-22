@@ -15,9 +15,7 @@ This project is an attempt to improve the situation. The main goals of the proje
 * Develop an API that can be easily extended for any custom type or operation;
 * Provide some generally useful functions for real-life applications.
 
-The core ideas behind the implementation of the package are described in
-[this ](https://clogg-software.blogspot.com/2020/03/higher-order-functions-and-function.html?view=classic)
-blog post.
+The core ideas behind the implementation of the package are described in [this](https://maxim2266.github.io/stout/) blog post.
 
 ### Examples
 
