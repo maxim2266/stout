@@ -1,10 +1,15 @@
 # Function composition and higher-order functions in Go
 
+This post outlines the core ideas behind the `stout` package by developing a (much simplified)
+library of composable byte streams.
+
+### Background
+
 Comparing Go to other programming languages, people often mention that
 * Go offers no "generics", and
 * Go requires explicit error checks that result in boilerplate code like `if err != nil { ... }`.
 
-The only form of generic programming offered by Go is via `go generate`, which is very powerful, but
+The only form of generic programming offered by Go is via `go generate` command, which is very powerful, but
 requires quite some set-up, and many people find it to be just not worth the effort for simple things like
 generic linked lists. Other often employed substitutes for generics are:
 * "little copying", followed by edits: this quickly runs out of control if "little" is defined to be
@@ -21,7 +26,7 @@ etc.).
 ### Composable Byte Streams
 
 Doing i/o in Go is where all those explicit error checks become really annoying. Every operation
-may return an error, and we have to check for it:
+may fail, and we have to check for the errors:
 ```go
 func writeFile(w io.Writer) error {
 	if err := writeHeader(w); err != nil {
@@ -96,7 +101,7 @@ func Write(w io.Writer, chunks ...Chunk) (err error) {
 Now, having developed the core function of our package, we want to come up with a way to
 map simple types to the chunk functions. The most suitable approach will be to use
 [higher-order functions](https://en.wikipedia.org/wiki/Higher-order_function) that can take
-a value of some integral data type and return a chunk function capable of writing that value
+a value of some data type and return a chunk function capable of writing that value
 to a byte stream. We can start from these two simple functions:
 ```go
 func Bytes(s []byte) Chunk {
@@ -124,7 +129,7 @@ without all those boring error checks:
 err := sw.Write(os.Stdout,
 	sw.String("This output is produced\n"),
 	sw.String("using a composition of functions\n"),
-	sw.String("each writing its chunk of text.\n"),
+	sw.String("each writing its own chunk of text.\n"),
 )
 
 if err != nil {
@@ -136,9 +141,11 @@ The implementations of those functions are trivial, so here we focus on more int
 instead, just to demonstrate what can be achieved with the library of three functions we have just
 developed.
 
+### Composing HTML
+
 Let's say we want to write a file in HTML, a structured text format.
 
-_Disclaimer: This is not going to be the nicest example of generating HTML in Go,
+**Disclaimer:** _This is not going to be the nicest example of generating HTML in Go,
 but rather an illustration of function composition methods._
 
 First of all, in HTML we have to escape certain symbols, and for that we will need the
@@ -213,7 +220,7 @@ i := textInTag("i")
 title := textInTag("title")
 h3 := textInTag("h3")
 body := chunksInTag("body")
-html_ := chunksInTag("html")
+html_ := chunksInTag("html") // underscore to avoid name collision with `html` package
 head := chunksInTag("head")
 footer := chunksInTag("footer")
 
@@ -242,16 +249,15 @@ if err != nil {
 }
 ```
 
+### Conclusion
+
 The above example demonstrates that:
-* In the situations where we know exactly the single operation we are going to apply to a
+* In situations where we know exactly the single operation we are going to apply to a
 "generic" type, the type itself can be represented by a function that performs the operation.
 Importantly, the signature of such a function has no reference to that generic type.
 * The core of the i/o and error-checking boilerplate can be encapsulated in a package
 as small as just three functions, each consisting of only a few lines of code. Nowhere else in this example
 we had to explicitly check for errors, except the main function where we did the actual writing.
 * The small package we developed here is extensible enough to allow for building a structured text
-writer on top of it. For the example HTML writer we had to add just a few more functions, none of which
-had to do an explicit error check.
+writer on top of it, with the help of just a few more functions.
 
-A significantly more feature-rich package built on the ideas described above can be found in
-[this](https://github.com/maxim2266/stout) repository.
