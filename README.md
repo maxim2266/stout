@@ -22,34 +22,34 @@ The core ideas behind the implementation of the package are described in [this](
 ##### "Hello, user" application:
 ```Go
 func main() {
-	_, err := stout.WriterBufferedStream(os.Stdout).Write(
-		stout.String("Hello, "),
-		stout.String(os.Getenv("USER")),
-		stout.String("!\n"),
-	)
+    _, err := stout.WriterBufferedStream(os.Stdout).Write(
+        stout.String("Hello, "),
+        stout.String(os.Getenv("USER")),
+        stout.String("!\n"),
+    )
 
-	if err != nil {
-		println("ERROR:", err.Error())
-		os.Exit(1)
-	}
+    if err != nil {
+        println("ERROR:", err.Error())
+        os.Exit(1)
+    }
 }
 ```
 
 ##### Simplified implementation of `cat` command:
 ```Go
 func main() {
-	files := make([]stout.Chunk, 0, len(os.Args)-1)
+    files := make([]stout.Chunk, 0, len(os.Args)-1)
 
-	for _, arg := range os.Args[1:] {
-		files = append(files, stout.File(arg))
-	}
+    for _, arg := range os.Args[1:] {
+        files = append(files, stout.File(arg))
+    }
 
-	_, err := stout.WriterBufferedStream(os.Stdout).Write(files...)
+    _, err := stout.WriterBufferedStream(os.Stdout).Write(files...)
 
-	if err != nil {
-		println("ERROR:", err.Error())
-		os.Exit(1)
-	}
+    if err != nil {
+        println("ERROR:", err.Error())
+        os.Exit(1)
+    }
 }
 ```
 
@@ -57,72 +57,72 @@ func main() {
 A complete application that generates a simple HTML page from `ps` command output:
 ```go
 func main() {
-	// run "ps" command
-	lines, err := ps()
+    // run "ps" command
+    lines, err := ps()
 
-	if err != nil {
-		die(err.Error())
-	}
+    if err != nil {
+        die(err.Error())
+    }
 
-	// compose HTML
-	// note: in a real-life application we would be writing to a socket instead of stdout
-	_, err = stout.WriterBufferedStream(os.Stdout).Write(
-		stout.String(hdr),
-		stout.Repeat(rowsFrom(lines)),
-		stout.String("</table></body></html>"),
-	)
+    // compose HTML
+    // note: in a real-life application we would be writing to a socket instead of stdout
+    _, err = stout.WriterBufferedStream(os.Stdout).Write(
+        stout.String(hdr),
+        stout.Repeat(rowsFrom(lines)),
+        stout.String("</table></body></html>"),
+    )
 
-	if err != nil {
-		die(err.Error())
-	}
+    if err != nil {
+        die(err.Error())
+    }
 }
 
 func rowsFrom(lines [][]byte) func(int, *stout.Writer) (int64, error) {
-	return func(i int, w *stout.Writer) (int64, error) {
-		// iteration stop
-		if i >= len(lines) {
-			return 0, io.EOF
-		}
+    return func(i int, w *stout.Writer) (int64, error) {
+        // iteration stop
+        if i >= len(lines) {
+            return 0, io.EOF
+        }
 
-		// get the i-th record
-		fields := bytes.Fields(lines[i])
+        // get the i-th record
+        fields := bytes.Fields(lines[i])
 
-		if len(fields) < 4 {
-			return 0, io.EOF
-		}
+        if len(fields) < 4 {
+            return 0, io.EOF
+        }
 
-		// compose and write one row
-		return w.WriteChunks([]stout.Chunk{
-			stout.String("<tr><td>"),
-			stout.Join("</td><td>",
-				stout.ByteSlice(fields[0]),                         // pid
-				stout.ByteSlice(fields[1]),                         // %cpu
-				stout.ByteSlice(fields[2]),                         // %mem
-				stout.String(html.EscapeString(string(fields[3]))), // cmd
-			),
-			stout.String("</td></tr>"),
-		})
-	}
+        // compose and write one row
+        return w.WriteChunks([]stout.Chunk{
+            stout.String("<tr><td>"),
+            stout.Join("</td><td>",
+                stout.ByteSlice(fields[0]),                         // pid
+                stout.ByteSlice(fields[1]),                         // %cpu
+                stout.ByteSlice(fields[2]),                         // %mem
+                stout.String(html.EscapeString(string(fields[3]))), // cmd
+            ),
+            stout.String("</td></tr>"),
+        })
+    }
 }
 
 func ps() (lines [][]byte, err error) {
-	var buff bytes.Buffer
+    var buff bytes.Buffer
 
-	// get the output of the command into the buffer
-	_, err = stout.ByteBufferStream(&buff).Write(
-		stout.Command("ps", "--no-headers", "-Ao", "pid,%cpu,%mem,cmd"),
-	)
+    // get the output of the command into the buffer
+    _, err = stout.ByteBufferStream(&buff).Write(
+        stout.Command("ps", "--no-headers", "-Ao", "pid,%cpu,%mem,cmd"),
+    )
 
-	if err == nil {
-		lines = bytes.Split(buff.Bytes(), []byte{'\n'})
-	}
+    if err == nil {
+        lines = bytes.Split(buff.Bytes(), []byte{'\n'})
+    }
 
-	return
+    return
 }
 
 func die(msg string) {
-	println("error:", msg)
-	os.Exit(1)
+    println("error:", msg)
+    os.Exit(1)
 }
 
 const hdr = `<!DOCTYPE html>

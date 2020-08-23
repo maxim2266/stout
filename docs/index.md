@@ -29,19 +29,19 @@ Doing i/o in Go is where all those explicit error checks become really annoying.
 may fail, and we have to check for the errors:
 ```go
 func writeFile(w io.Writer) error {
-	if err := writeHeader(w); err != nil {
-		return err
-	}
+    if err := writeHeader(w); err != nil {
+        return err
+    }
 
-	if err := writeBody(w); err != nil {
-		return err
-	}
+    if err := writeBody(w); err != nil {
+        return err
+    }
 
-	if err := writeFooter(w); err != nil {
-		return err
-	}
+    if err := writeFooter(w); err != nil {
+        return err
+    }
 
-	return nil
+    return nil
 }
 ```
 And as the structure of the file we are writing becomes more complex, the code gets really
@@ -57,7 +57,7 @@ parts ("chunks"), from left to right, returning an error, or `nil`. With this fu
 example can be rewritten like:
 ```go
 if err := sw.Write(w, header, body, footer); err != nil {
-	return err
+    return err
 }
 ```
 At this point, the big question is: what is that `Chunk`? Designing the `sw` package,
@@ -88,13 +88,13 @@ No interfaces, no "generics", just a function that takes a byte stream and retur
 Given that, our implementation of the `Write()` function becomes really simple:
 ```go
 func Write(w io.Writer, chunks ...Chunk) (err error) {
-	for _, chunk := range chunks {
-		if err = chunk(w); err != nil {
-			break
-		}
-	}
+    for _, chunk := range chunks {
+        if err = chunk(w); err != nil {
+            break
+        }
+    }
 
-	return
+    return
 }
 ```
 
@@ -105,14 +105,14 @@ a value of some data type and return a chunk function capable of writing that va
 to a byte stream. We can start from these two simple functions:
 ```go
 func Bytes(s []byte) Chunk {
-	return func(w io.Writer) (err error) {
-		_, err = w.Write(s)
-		return
-	}
+    return func(w io.Writer) (err error) {
+        _, err = w.Write(s)
+        return
+    }
 }
 
 func String(s string) Chunk {
-	return Bytes([]byte(s))
+    return Bytes([]byte(s))
 }
 ```
 These two small functions already allow us to say "hello" to the world:
@@ -120,20 +120,20 @@ These two small functions already allow us to say "hello" to the world:
 err := sw.Write(os.Stdout, sw.String("Hello, world!"))
 
 if err != nil {
-	// handle error
+    // handle error
 }
 ```
 In fact, we can now produce some more meaningful output composed from a number of parts,
 without all those boring error checks:
 ```go
 err := sw.Write(os.Stdout,
-	sw.String("This output is produced\n"),
-	sw.String("using a composition of functions\n"),
-	sw.String("each writing its own chunk of text.\n"),
+    sw.String("This output is produced\n"),
+    sw.String("using a composition of functions\n"),
+    sw.String("each writing its own chunk of text.\n"),
 )
 
 if err != nil {
-	// handle error
+    // handle error
 }
 ```
 With little effort we can also develop other chunk function constructors for integers, floats, etc.
@@ -152,20 +152,20 @@ First of all, in HTML we have to escape certain symbols, and for that we will ne
 following function:
 ```go
 func text(s string) sw.Chunk {
-	return sw.String(html.EscapeString(s))
+    return sw.String(html.EscapeString(s))
 }
 ```
 Using this function we can develop a constructor for a function that outputs the given text in
 **bold** (i.e. between `<b>` and `</b>`):
 ```go
 func b(s string) sw.Chunk {
-	return func(w io.Writer) error {
-		return sw.Write(w,
-			sw.String("<b>"),
-			text(s),
-			sw.String("</b>"),
-		)
-	}
+    return func(w io.Writer) error {
+        return sw.Write(w,
+            sw.String("<b>"),
+            text(s),
+            sw.String("</b>"),
+        )
+    }
 }
 ```
 This works, but
@@ -177,15 +177,15 @@ We start from the following function that constructs a chunk function that write
 chunks enclosed in the given tag:
 ```go
 func tag(t string, chunks ...sw.Chunk) sw.Chunk {
-	list := make([]sw.Chunk, 0, len(chunks)+2)
+    list := make([]sw.Chunk, 0, len(chunks)+2)
 
-	list = append(list, sw.String("<"+t+">"))
-	list = append(list, chunks...)
-	list = append(list, sw.String("</"+t+">"))
+    list = append(list, sw.String("<"+t+">"))
+    list = append(list, chunks...)
+    list = append(list, sw.String("</"+t+">"))
 
-	return func(w io.Writer) error {
-		return sw.Write(w, list...)
-	}
+    return func(w io.Writer) error {
+        return sw.Write(w, list...)
+    }
 }
 ```
 And many other HTML chunk constructors become just a specialisation of the above generic function.
@@ -193,9 +193,9 @@ But we don't want to write all those specialisations ourselves, instead we autom
 another higher-order function:
 ```go
 func textInTag(t string) func(string) sw.Chunk {
-	return func(s string) sw.Chunk {
-		return tag(t, text(s))
-	}
+    return func(s string) sw.Chunk {
+        return tag(t, text(s))
+    }
 }
 ```
 Just to clarify, `textInTag` is a function that for a given tag name returns a function that for
@@ -226,26 +226,26 @@ footer := chunksInTag("footer")
 
 // compose html
 err := sw.Write(os.Stdout,
-	sw.String("<!DOCTYPE HTML>"),
-	html_(
-		head(
-			sw.String(`<meta charset="utf-8">`),
-			title("Function Composition"),
-		),
-		body(
-			h3("Function Composition"),
-			text("In computer science, "), b("function composition"),
-			text(" is an act or mechanism to "), i("combine"),
-			text(" simple functions to build more complicated ones."),
-			footer(
-				text("Definition from Wikipedia."),
-			),
-		),
-	),
+    sw.String("<!DOCTYPE HTML>"),
+    html_(
+        head(
+            sw.String(`<meta charset="utf-8">`),
+            title("Function Composition"),
+        ),
+        body(
+            h3("Function Composition"),
+            text("In computer science, "), b("function composition"),
+            text(" is an act or mechanism to "), i("combine"),
+            text(" simple functions to build more complicated ones."),
+            footer(
+                text("Definition from Wikipedia."),
+            ),
+        ),
+    ),
 )
 
 if err != nil {
-	// handle error
+    // handle error
 }
 ```
 
