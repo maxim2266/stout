@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2019,2020 Maxim Konakov
+Copyright (c) 2019,2020,2021 Maxim Konakov
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,
@@ -527,6 +527,23 @@ func writeFile(pathname string, flags int, perm os.FileMode, chunks []Chunk) (n 
 // of the write operation. In case of any error the temporary is removed from the disk, and the target
 // is left unmodified.
 func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int64, err error) {
+	// check destination; it must be a regular file
+	var stat os.FileInfo
+
+	if stat, err = os.Stat(pathname); err == nil {
+		if !stat.Mode().IsRegular() {
+			err = &os.PathError{
+				Op:   "stat",
+				Path: pathname,
+				Err:  errors.New("Not a regular file"),
+			}
+
+			return
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return
+	}
+
 	// create temporary file in the same directory as the target
 	var fd *os.File
 

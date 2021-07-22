@@ -130,3 +130,6 @@ const hdr = `<!DOCTYPE html>
 <body><table>
 <tr><th>pid</th><th>cpu</th><th>mem</th><th>cmd</th>`
 ```
+
+### Status
+Tested on Linux Mint 20.2 with Go version 1.16.6.
