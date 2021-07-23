@@ -522,18 +522,22 @@ func writeFile(pathname string, flags int, perm os.FileMode, chunks []Chunk) (n 
 	return
 }
 
-// AtomicWriteFile is a convenience function for writing to the given disk file. The data are first written
-// to a temporary file, and the target file (if exists) gets overwritten only upon successful completion
-// of the write operation. In case of any error the temporary is removed from the disk, and the target
-// is left unmodified.
+// AtomicWriteFile is a convenience function for writing to the given disk file. The file must exist,
+// and be a regular file. The write first goes to a temporary file, and then the temporary gets moved to
+// the destination, but only upon successful completion of the write operation. In case of any error the
+// temporary is removed from the disk, and the target (if exists) is left untouched.
 func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int64, err error) {
 	// check destination; it must be a regular file
 	var stat os.FileInfo
 
-	if stat, err = os.Stat(pathname); err == nil {
-		if !stat.Mode().IsRegular() {
+	if stat, err = os.Lstat(pathname); err == nil {
+		// copy permission bits from the existing file
+		perm = stat.Mode()
+
+		// check if it's a regular file
+		if !perm.IsRegular() {
 			err = &os.PathError{
-				Op:   "stat",
+				Op:   "atomic write to file",
 				Path: pathname,
 				Err:  errors.New("Not a regular file"),
 			}
@@ -566,8 +570,8 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 		}
 	}()
 
-	// set file permission
-	if err = fd.Chmod(perm | 0600); err != nil {
+	// set file permissions
+	if err = fd.Chmod(perm & os.ModePerm); err != nil {
 		return
 	}
 

@@ -146,6 +146,23 @@ func TestAtomicWriteFileError(t *testing.T) {
 		t.Errorf("Unexpected error while stat'ing file %q: %s", file, err)
 		return
 	}
+
+	// test error on symlink
+	link := file + "-link"
+
+	if err = os.Symlink(file, link); err != nil { // the link is broken, but it's OK here
+		t.Error(err)
+		return
+	}
+
+	defer os.Remove(link)
+
+	if _, err = AtomicWriteFile(link, 0600, String("ZZZ")); err == nil {
+		t.Error("Missing error")
+		return
+	}
+
+	t.Log(err)
 }
 
 func TestAtomicWriteFilePanic(t *testing.T) {
