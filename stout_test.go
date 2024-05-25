@@ -163,6 +163,17 @@ func TestAtomicWriteFileError(t *testing.T) {
 	}
 
 	t.Log(err)
+
+	// test permission bits
+	const permFileName = "test-atomic-perm-error"
+
+	if _, err = AtomicWriteFile(permFileName, 0020, String("ZZZ")); err == nil {
+		t.Error("Missing error")
+		os.Remove(permFileName)
+		return
+	}
+
+	t.Log(err)
 }
 
 func TestAtomicWriteFilePanic(t *testing.T) {

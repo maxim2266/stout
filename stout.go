@@ -531,11 +531,8 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 	var stat os.FileInfo
 
 	if stat, err = os.Lstat(pathname); err == nil {
-		// copy permission bits from the existing file
-		perm = stat.Mode()
-
 		// check if it's a regular file
-		if !perm.IsRegular() {
+		if !stat.Mode().IsRegular() {
 			err = &os.PathError{
 				Op:   "atomic write to file",
 				Path: pathname,
@@ -544,7 +541,22 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 
 			return
 		}
+
+		// copy permission bits from the existing file
+		perm = stat.Mode().Perm()
+
 	} else if !errors.Is(err, os.ErrNotExist) {
+		return
+	}
+
+	// check permission bits
+	if perm &= os.ModePerm; perm&0200 == 0 {
+		err = &os.PathError{
+			Op:   "atomic write to file",
+			Path: pathname,
+			Err:  fmt.Errorf("File is not writable (perm. %#03o)", perm),
+		}
+
 		return
 	}
 
@@ -571,7 +583,7 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 	}()
 
 	// set file permissions
-	if err = fd.Chmod(perm & os.ModePerm); err != nil {
+	if err = fd.Chmod(perm); err != nil {
 		return
 	}
 
