@@ -535,7 +535,7 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 			err = &os.PathError{
 				Op:   "atomic write to file",
 				Path: pathname,
-				Err:  errors.New("Not a regular file"),
+				Err:  errors.New("not a regular file"),
 			}
 
 			return
@@ -553,7 +553,7 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 		err = &os.PathError{
 			Op:   "atomic write to file",
 			Path: pathname,
-			Err:  fmt.Errorf("File is not writable (perm. %#03o)", perm),
+			Err:  fmt.Errorf("file is not writable (perm. %#03o)", perm),
 		}
 
 		return
