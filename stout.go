@@ -38,7 +38,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -563,7 +562,7 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 	// create temporary file in the same directory as the target
 	var fd *os.File
 
-	if fd, err = ioutil.TempFile(filepath.Dir(pathname), "tmp-"); err != nil {
+	if fd, err = os.CreateTemp(filepath.Dir(pathname), "tmp-"); err != nil {
 		return
 	}
 
@@ -603,7 +602,7 @@ func AtomicWriteFile(pathname string, perm os.FileMode, chunks ...Chunk) (n int6
 func WriteTempFile(chunks ...Chunk) (name string, n int64, err error) {
 	var fd *os.File
 
-	if fd, err = ioutil.TempFile("", "tmp-"); err != nil {
+	if fd, err = os.CreateTemp("", "tmp-"); err != nil {
 		return
 	}
 
